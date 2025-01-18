@@ -1,0 +1,30 @@
+plugins {
+    id 'java'
+    id 'war'
+}
+
+java {
+    version 21
+}
+
+war {
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation libs.springContext
+    implementation libs.springWebMvc
+    implementation libs.springJdbc
+
+    implementation libs.h2db
+
+    implementation libs.thymeleaf
+
+    compileOnly libs.lombok
+    annotationProcessor libs.lombok
+
+    testImplementation libs.springTest
+}

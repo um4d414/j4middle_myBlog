@@ -1,0 +1,17 @@
+[versions]
+spring = "6.2.2"
+h2db = "2.3.232"
+lombok = "1.18.36"
+thymeleaf = "3.1.3.RELEASE"
+
+[libraries]
+springContext = { module = "org.springframework:spring-context", version.ref = "spring" }
+springWebMvc = { module = "org.springframework:spring-webmvc", version.ref = "spring" }
+springTest = { module = "org.springframework:spring-test", version.ref = "spring" }
+springJdbc = {module = "org.springframework:spring-jdbc", version.ref = "spring"}
+
+h2db = {module = "com.h2database:h2", version.ref = "h2db"}
+
+thymeleaf = { module = "org.thymeleaf:thymeleaf", version.ref = "thymeleaf"}
+
+lombok = { module = "org.projectlombok:lombok", version.ref = "lombok"}
