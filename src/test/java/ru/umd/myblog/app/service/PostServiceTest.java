@@ -23,7 +23,7 @@ class PostServiceTest {
     }
 
     @Test
-    void findPost() {
+    void findPostById() {
     }
 
     @Test

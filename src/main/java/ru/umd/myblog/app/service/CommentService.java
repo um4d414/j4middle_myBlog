@@ -1,65 +1,59 @@
 package ru.umd.myblog.app.service;
 
+import javassist.NotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import ru.umd.myblog.app.data.dto.CommentDto;
-import ru.umd.myblog.app.data.dto.PostDto;
 import ru.umd.myblog.app.data.entity.Comment;
-import ru.umd.myblog.app.data.entity.Post;
 import ru.umd.myblog.app.data.repository.CommentRepository;
 
 import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 public class CommentService {
     private final CommentRepository commentRepository;
 
-    public void addComment(Long postId, String content) {
-        // Логика добавления комментария
+    public List<CommentDto> getCommentsByPostId(long postId) {
+        return commentRepository.findByPostId(postId).stream()
+            .map(this::mapToDto)
+            .collect(Collectors.toList());
     }
 
-    public void updateComment(Long commentId, String content) {
-        // Логика обновления комментария
+    public void addComment(long postId, String content) {
+        Comment comment = new Comment();
+        comment.setContent(content);
+        comment.setPostId(postId);
+
+        commentRepository.save(comment);
     }
 
-    public void deleteComment(Long commentId) {
-        // Логика удаления комментария
+    public void updateComment(long commentId, String content) throws NotFoundException {
+        Comment comment = commentRepository
+            .findById(commentId)
+            .orElseThrow(() -> new NotFoundException("Комментарий с ID " + commentId + " не найден"));
+
+        comment.setContent(content);
+        commentRepository.update(comment);
     }
 
-    public CommentDto getCommentById(Long commentId) {
-        // Логика получения комментария по ID
-        return null;
+    public void deleteComment(long commentId) {
+        commentRepository.deleteById(commentId);
     }
 
-    public Long getPostIdByCommentId(Long commentId) {
-        // Логика получения ID поста по ID комментария
-        return null;
-    }
-
-    public List<CommentDto> getCommentsByPostId(Long postId) {
+    public Optional<CommentDto> findCommentById(long commentId) {
         return commentRepository
-            .findByPostId(postId)
-            .stream()
-            .map(this::mapComment)
-            .toList();
+            .findById(commentId)
+            .map(this::mapToDto);
     }
 
-    private CommentDto mapComment(Comment comment) {
-        return CommentDto
-            .builder()
+    private CommentDto mapToDto(Comment comment) {
+        return CommentDto.builder()
             .id(comment.getId())
             .content(comment.getContent())
             .postId(comment.getPostId())
             .build();
-    }
-
-    private Comment mapComment(CommentDto commentDto) {
-        var comment = new Comment();
-        comment.setId(commentDto.getId());
-        comment.setContent(commentDto.getContent());
-        comment.setPostId(commentDto.getPostId());
-
-        return comment;
     }
 }

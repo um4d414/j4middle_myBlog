@@ -20,6 +20,7 @@ import java.util.List;
 import java.util.UUID;
 
 @Controller
+@RequestMapping("/posts")
 @RequiredArgsConstructor
 public class PostController {
     private final PostService postService;
@@ -27,7 +28,6 @@ public class PostController {
     private final CommentService commentService;
 
     @GetMapping(
-        value = "/posts",
         produces = MediaType.TEXT_HTML_VALUE
     )
     public String postsFeed(Model model) {
@@ -38,7 +38,6 @@ public class PostController {
     }
 
     @PostMapping(
-        value = "/posts",
         consumes = MediaType.MULTIPART_FORM_DATA_VALUE,
         produces = MediaType.TEXT_HTML_VALUE
     )
@@ -56,7 +55,7 @@ public class PostController {
         return "redirect:/posts";
     }
 
-    @PostMapping("/posts/{postId}/like")
+    @PostMapping("/{postId}/like")
     public ResponseEntity<?> likePost(@PathVariable("postId") Long postId) throws NotFoundException {
         int newLikesCount;
         try {
@@ -68,10 +67,10 @@ public class PostController {
         return ResponseEntity.ok(new LikesResponse(newLikesCount));
     }
 
-    @GetMapping("/posts/{postId}")
+    @GetMapping("/{postId}")
     public String getPost(@PathVariable("postId") Long postId, Model model) throws NotFoundException {
         var post = postService
-            .findPost(postId)
+            .findPostById(postId)
             .orElseThrow(() -> new NotFoundException("Пост не найден"));
 
         List<CommentDto> comments = commentService.getCommentsByPostId(postId);
@@ -81,14 +80,14 @@ public class PostController {
         return "post";
     }
 
-    @PostMapping("/posts/edit")
+    @PostMapping("/edit")
     public String editPost(@ModelAttribute("post") PostDto postDto) {
         postService.updatePost(postDto);
 
         return "redirect:/posts/" + postDto.getId();
     }
 
-    @PostMapping("/posts/{postId}/delete")
+    @PostMapping("/{postId}/delete")
     public String deletePost(@PathVariable("postId") Long postId) {
         postService.deletePost(postId);
         return "redirect:/posts";

@@ -3,13 +3,16 @@ package ru.umd.myblog.app.data.repository;
 import ru.umd.myblog.app.data.entity.Comment;
 
 import java.util.List;
+import java.util.Optional;
 
 public interface CommentRepository {
-    void addComment(Long postId, String content);
+    List<Comment> findByPostId(long postId);
 
-    void updateComment(Long commentId, String content);
+    Comment save(Comment comment);
 
-    void deleteComment(Long commentId); //
+    void deleteById(long commentId);
 
-    List<Comment> findByPostId(Long postId);
+    void update(Comment comment);
+
+    Optional<Comment> findById(long commentId);
 }

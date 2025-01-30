@@ -22,7 +22,7 @@ public class PostService {
             .toList();
     }
 
-    public Optional<PostDto> findPost(Long id) {
+    public Optional<PostDto> findPostById(Long id) {
         return postRepository
             .getPost(id)
             .map(this::mapPost);

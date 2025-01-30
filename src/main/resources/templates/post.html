@@ -49,7 +49,7 @@
 </p>
 
 <div>
-    <form th:action="@{/posts/{postId}/comments(postId=${post.id})}" method="post">
+    <form th:action="@{/comments/{postId}(postId=${post.id})}" method="post">
         <textarea name="content" placeholder="Ваш комментарий" required></textarea><br/>
         <button type="submit">Добавить комментарий</button>
     </form>
@@ -57,7 +57,16 @@
 
 <div th:each="comment : ${comments}">
     <p th:text="${comment.content}">Текст комментария</p>
-    <a th:href="@{/comments/{commentId}/edit(commentId=${comment.id})}">Редактировать</a>
+
+    <button th:onclick="'toggleEditForm(' + ${comment.id} + ')'">Редактировать</button>
+
+    <div th:id="'editForm-' + ${comment.id}" style="display: none;">
+        <form th:action="@{/comments/{commentId}/edit(commentId=${comment.id})}" method="post">
+            <textarea name="content" th:text="${comment.content}" required></textarea><br/>
+            <button type="submit">Сохранить</button>
+        </form>
+    </div>
+
     <form th:action="@{/comments/{commentId}/delete(commentId=${comment.id})}" method="post" style="display: inline;">
         <button type="submit">Удалить</button>
     </form>
@@ -87,9 +96,14 @@
         });
     });
 
-    function toggleEditForm() {
-        var editForm = document.getElementById("editForm");
-        if (editForm.style.display === "none") {
+    function toggleEditForm(commentId = null) {
+        if (commentId === null) {
+            var editForm = document.getElementById("editForm");
+        } else {
+            var editForm = document.getElementById("editForm-" + commentId);
+        }
+
+        if (editForm.style.display === "none" || !editForm.style.display) {
             editForm.style.display = "block";
         } else {
             editForm.style.display = "none";
