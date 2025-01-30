@@ -3,28 +3,50 @@ plugins {
     id 'war'
 }
 
-java {
-    version 21
-}
-
-war {
-}
+//java {
+//    version 0.1
+//}
 
 repositories {
     mavenCentral()
 }
 
+war {
+    destinationDirectory.set(layout.buildDirectory)
+}
+
+test {
+    useJUnitPlatform()
+}
+
+tasks.register('copyToTomcat', Copy) {
+    dependsOn tasks.assemble
+    from layout.buildDirectory
+    into 'C:\\dev\\tomcat\\t1\\11.0.2\\webapps'
+    include '*.war'
+}
+
+tasks.assemble.finalizedBy('copyToTomcat')
+
 dependencies {
     implementation libs.springContext
+    implementation libs.springWeb
     implementation libs.springWebMvc
     implementation libs.springJdbc
 
     implementation libs.h2db
 
     implementation libs.thymeleaf
+    implementation libs.thymeleafSpring6
+
+    implementation libs.jackson
 
     compileOnly libs.lombok
     annotationProcessor libs.lombok
 
+    implementation libs.jakartaServletApi
+
     testImplementation libs.springTest
+    testImplementation libs.junit
+    testRuntimeOnly libs.junitEngine
 }

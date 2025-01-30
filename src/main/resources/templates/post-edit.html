@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Редактирование поста</title>
+</head>
+<body>
+
+<h1>Редактирование поста</h1>
+
+<form th:action="@{/posts/{postId}/edit(postId=${post.id})}" th:object="${post}" method="post" enctype="multipart/form-data">
+    <label for="title">Заголовок поста: </label>
+    <input id="title" th:field="*{title}" type="text"/><br/>
+
+    <label for="image">Изображение: </label>
+    <input id="image" type="file" name="image" accept="image/*"/><br/>
+
+    <label for="content">Текст: </label>
+    <textarea id="content" th:field="*{content}"></textarea><br/>
+
+    <label for="tags">Тэги (через запятую): </label>
+    <input id="tags" th:field="*{tags}" type="text"/><br/>
+
+    <button type="submit">Сохранить</button>
+</form>
+
+</body>
+</html>

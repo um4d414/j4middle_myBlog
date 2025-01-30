@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${post.title}">Название поста</title>
+</head>
+<body>
+
+<h1 th:text="${post.title}">Название поста</h1>
+
+<img th:if="${post.imageUrl}" th:src="@{${post.imageUrl}}" alt="Post image" style="max-width: 300px;"/><br/>
+
+<div th:utext="${#strings.replace(post.content, '\n', '<br>')}">Текст поста</div>
+
+<p>Тэги:
+    <span th:each="tag : ${post.tags}" th:text="${tag} + ' '"></span>
+</p>
+
+<div>
+    <a th:href="@{/posts/{postId}/edit(postId=${post.id})}">Редактировать</a>
+    <form th:action="@{/posts/{postId}/delete(postId=${post.id})}" method="post" style="display: inline;">
+        <button type="submit">Удалить</button>
+    </form>
+</div>
+
+<p>Лайки:
+    <span id="likes" th:text="${post.likes}">0</span>
+    <a href="#" class="like-link" th:data-post-id="${post.id}" th:href="@{/posts/{postId}/like(postId=${post.id})}">Like</a>
+</p>
+
+<div>
+    <form th:action="@{/posts/{postId}/comments(postId=${post.id})}" method="post">
+        <textarea name="content" placeholder="Ваш комментарий" required></textarea><br/>
+        <button type="submit">Добавить комментарий</button>
+    </form>
+</div>
+
+<div th:each="comment : ${post.comments}">
+    <p th:text="${comment.content}">Текст комментария</p>
+    <a th:href="@{/comments/{commentId}/edit(commentId=${comment.id})}">Редактировать</a>
+    <form th:action="@{/comments/{commentId}/delete(commentId=${comment.id})}" method="post" style="display: inline;">
+        <button type="submit">Удалить</button>
+    </form>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+
+<script>
+    $(document).ready(function () {
+        $(".like-link").click(function (event) {
+            event.preventDefault(); // Предотвращаем переход по ссылке
+
+            var postId = $(this).data('post-id'); // Получаем ID поста
+            var likeUrl = $(this).attr('href'); // Получаем URL для лайка
+
+            $.ajax({
+                url: likeUrl,
+                type: 'POST',
+                dataType: 'json', // Ожидаем JSON-ответ
+                success: function (response) {
+                    $('#likes').text(response.likes); // Обновляем количество лайков
+                },
+                error: function (error) {
+                    console.error("Ошибка при отправке запроса:", error); // Логируем ошибку
+                }
+            });
+        });
+    });
+</script>
+
+</body>
+</html>
