@@ -13,4 +13,6 @@ public interface PostRepository {
     Post createPost(Post post);
 
     int incrementLikes(Long postId);
+
+    void updatePost(Post post);
 }

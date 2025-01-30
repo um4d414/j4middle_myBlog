@@ -38,7 +38,8 @@ public class PostService {
         return postRepository.incrementLikes(id);
     }
 
-    public void updatePost(Long postId, PostDto postDto) {
+    public void updatePost(PostDto postDto) {
+        postRepository.updatePost(mapPost(postDto));
     }
 
     private PostDto mapPost(Post post) {

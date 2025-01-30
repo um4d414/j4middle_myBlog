@@ -73,18 +73,18 @@ public class PostController {
 
         return "post";
     }
-//
-//    @PostMapping("/posts/{postId}/edit")
-//    public String editPost(@PathVariable("postId") Long postId, @ModelAttribute("post") PostDto postDto) {
-//        postService.updatePost(postId, postDto);
-//
-//        return "redirect:/posts/" + postId; // Перенаправляем на страницу поста
-//    }
-//
+
+    @PostMapping("/posts/edit")
+    public String editPost(@ModelAttribute("post") PostDto postDto) {
+        postService.updatePost(postDto);
+
+        return "redirect:/posts/" + postDto.getId();
+    }
+
 //    @PostMapping("/posts/{postId}/delete")
 //    public String deletePost(@PathVariable("postId") Long postId) {
-//        postService.deletePost(postId); // Удаляем пост
-//        return "redirect:/posts"; // Перенаправляем на главную страницу
+//        postService.deletePost(postId);
+//        return "redirect:/posts";
 //    }
 
     private String saveImage(MultipartFile image) throws IOException {
