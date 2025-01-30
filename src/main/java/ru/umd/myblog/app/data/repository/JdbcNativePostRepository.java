@@ -119,9 +119,7 @@ public class JdbcNativePostRepository implements PostRepository {
                 tag -> {
                     var tagName = tag.getName().trim();
 
-                    String insertTagSql = """
-                                          MERGE INTO tags (name) KEY (name) VALUES (?)
-                                          """;
+                    String insertTagSql = "MERGE INTO tags (name) KEY (name) VALUES (?)\n";
 
                     jdbcTemplate.update(insertTagSql, tagName);
 
@@ -152,5 +150,19 @@ public class JdbcNativePostRepository implements PostRepository {
 
         String selectSql = "SELECT likes FROM posts WHERE id = ?";
         return jdbcTemplate.queryForObject(selectSql, Integer.class, postId);
+    }
+
+    @Override
+    public void updatePost(Post post) {
+        String sql = "UPDATE posts SET title = ?, content = ?, image_url = ?, likes = ?, tags = ? WHERE id = ?";
+        jdbcTemplate.update(
+            sql,
+            post.getTitle(),
+            post.getContent(),
+            post.getImageUrl(),
+            post.getLikes(),
+            post.getTags(),
+            post.getId()
+        );
     }
 }

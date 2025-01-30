@@ -17,12 +17,31 @@
     <span th:each="tag : ${post.tags}" th:text="${tag} + ' '"></span>
 </p>
 
-<div>
-    <a th:href="@{/posts/{postId}/edit(postId=${post.id})}">Редактировать</a>
-    <form th:action="@{/posts/{postId}/delete(postId=${post.id})}" method="post" style="display: inline;">
-        <button type="submit">Удалить</button>
+<button onclick="toggleEditForm()">Редактировать</button>
+
+<div id="editForm" style="display: none;">
+    <form th:action="@{/posts/edit}" th:object="${post}" method="post" enctype="multipart/form-data">
+        <input type="hidden" th:field="*{id}" />
+
+        <label for="title">Заголовок поста: </label>
+        <input id="title" th:field="*{title}" type="text"/><br/>
+
+        <label for="image">Изображение: </label>
+        <input id="image" type="file" name="image" accept="image/*"/><br/>
+
+        <label for="content">Текст: </label>
+        <textarea id="content" th:field="*{content}"></textarea><br/>
+
+        <label for="tags">Тэги (через запятую): </label>
+        <input id="tags" th:field="*{tags}" type="text"/><br/>
+
+        <button type="submit">Сохранить</button>
     </form>
 </div>
+
+<form th:action="@{/posts/{postId}/delete(postId=${post.id})}" method="post" style="display: inline;">
+    <button type="submit">Удалить</button>
+</form>
 
 <p>Лайки:
     <span id="likes" th:text="${post.likes}">0</span>
@@ -67,6 +86,15 @@
             });
         });
     });
+
+    function toggleEditForm() {
+        var editForm = document.getElementById("editForm");
+        if (editForm.style.display === "none") {
+            editForm.style.display = "block";
+        } else {
+            editForm.style.display = "none";
+        }
+    }
 </script>
 
 </body>
