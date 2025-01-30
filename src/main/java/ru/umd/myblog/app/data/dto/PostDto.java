@@ -20,8 +20,6 @@ public class PostDto {
 
     private Set<String> tags;
 
-    private int comments;
-
     @Tolerate
     public PostDto() {}
 }

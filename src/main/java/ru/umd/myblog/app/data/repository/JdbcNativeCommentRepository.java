@@ -8,6 +8,8 @@ import org.springframework.stereotype.Repository;
 import ru.umd.myblog.app.data.dto.CommentDto;
 import ru.umd.myblog.app.data.entity.Comment;
 
+import java.util.List;
+
 @Repository
 @Primary
 @RequiredArgsConstructor
@@ -39,12 +41,8 @@ public class JdbcNativeCommentRepository implements CommentRepository {
     }
 
     @Override
-    public CommentDto getCommentById(Long commentId) {
-        return null;
-    }
-
-    @Override
-    public Long getPostIdByCommentId(Long commentId) {
-        return 0L;
+    public List<Comment> findByPostId(Long postId) {
+        var sql = "SELECT * FROM comments WHERE post_id = ?";
+        return jdbcTemplate.query(sql, commentRowMapper, postId);
     }
 }

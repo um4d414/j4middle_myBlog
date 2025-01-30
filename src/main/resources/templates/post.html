@@ -55,7 +55,7 @@
     </form>
 </div>
 
-<div th:each="comment : ${post.comments}">
+<div th:each="comment : ${comments}">
     <p th:text="${comment.content}">Текст комментария</p>
     <a th:href="@{/comments/{commentId}/edit(commentId=${comment.id})}">Редактировать</a>
     <form th:action="@{/comments/{commentId}/delete(commentId=${comment.id})}" method="post" style="display: inline;">
@@ -68,20 +68,20 @@
 <script>
     $(document).ready(function () {
         $(".like-link").click(function (event) {
-            event.preventDefault(); // Предотвращаем переход по ссылке
+            event.preventDefault();
 
-            var postId = $(this).data('post-id'); // Получаем ID поста
-            var likeUrl = $(this).attr('href'); // Получаем URL для лайка
+            var postId = $(this).data('post-id');
+            var likeUrl = $(this).attr('href');
 
             $.ajax({
                 url: likeUrl,
                 type: 'POST',
-                dataType: 'json', // Ожидаем JSON-ответ
+                dataType: 'json',
                 success: function (response) {
-                    $('#likes').text(response.likes); // Обновляем количество лайков
+                    $('#likes').text(response.likes);
                 },
                 error: function (error) {
-                    console.error("Ошибка при отправке запроса:", error); // Логируем ошибку
+                    console.error("Ошибка при отправке запроса:", error);
                 }
             });
         });
@@ -96,6 +96,5 @@
         }
     }
 </script>
-
 </body>
 </html>

@@ -1,6 +1,8 @@
 package ru.umd.myblog.app.data.repository;
 
-import ru.umd.myblog.app.data.dto.CommentDto;
+import ru.umd.myblog.app.data.entity.Comment;
+
+import java.util.List;
 
 public interface CommentRepository {
     void addComment(Long postId, String content);
@@ -9,7 +11,5 @@ public interface CommentRepository {
 
     void deleteComment(Long commentId); //
 
-    CommentDto getCommentById(Long commentId);
-
-    Long getPostIdByCommentId(Long commentId);
+    List<Comment> findByPostId(Long postId);
 }

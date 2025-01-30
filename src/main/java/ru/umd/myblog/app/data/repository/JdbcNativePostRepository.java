@@ -7,8 +7,8 @@ import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 import ru.umd.myblog.app.data.entity.Post;
-import ru.umd.myblog.app.data.entity.Tag;
 
 import java.sql.PreparedStatement;
 import java.util.*;
@@ -29,13 +29,6 @@ public class JdbcNativePostRepository implements PostRepository {
         return post;
     };
 
-    private final RowMapper<Tag> tagRowMapper = (rs, rowNum) -> {
-        Tag tag = new Tag();
-        tag.setId(rs.getLong("id"));
-        tag.setName(rs.getString("name"));
-        return tag;
-    };
-
     @Override
     public Optional<Post> getPost(long id) {
         var sql = """
@@ -54,11 +47,11 @@ public class JdbcNativePostRepository implements PostRepository {
         }
 
         var tagsSql = """
-                      SELECT t.id, t.name FROM tags t
+                      SELECT t.name FROM tags t
                       JOIN post_tags pt ON t.id = pt.tag_id
                       WHERE pt.post_id = %d""".formatted(post.getId());
 
-        Set<Tag> tags = new HashSet<>(jdbcTemplate.query(tagsSql, tagRowMapper));
+        Set<String> tags = new HashSet<>(jdbcTemplate.queryForList(tagsSql, String.class));
         post.setTags(tags);
 
         return Optional.of(post);
@@ -80,11 +73,11 @@ public class JdbcNativePostRepository implements PostRepository {
                 post.setLikes(rs.getInt("likes"));
 
                 var tagsSql = """
-                              SELECT t.id, t.name FROM tags t
+                              SELECT t.name FROM tags t
                               JOIN post_tags pt ON t.id = pt.tag_id
                               WHERE pt.post_id = %d""".formatted(post.getId());
 
-                Set<Tag> tags = new HashSet<>(jdbcTemplate.query(tagsSql, tagRowMapper));
+                Set<String> tags = new HashSet<>(jdbcTemplate.queryForList(tagsSql, String.class));
                 post.setTags(tags);
                 return post;
             }
@@ -116,11 +109,10 @@ public class JdbcNativePostRepository implements PostRepository {
 
         if (post.getTags() != null && !post.getTags().isEmpty()) {
             post.getTags().forEach(
-                tag -> {
-                    var tagName = tag.getName().trim();
+                tagName -> {
+                    tagName = tagName.trim();
 
-                    String insertTagSql = "MERGE INTO tags (name) KEY (name) VALUES (?)\n";
-
+                    String insertTagSql = "MERGE INTO tags (name) KEY (name) VALUES (?)";
                     jdbcTemplate.update(insertTagSql, tagName);
 
                     Long tagId = jdbcTemplate.queryForObject(
@@ -137,14 +129,13 @@ public class JdbcNativePostRepository implements PostRepository {
         }
 
         post.setId(postId);
-        post.setComments(0);
         post.setLikes(0);
 
         return post;
     }
 
     @Override
-    public int incrementLikes(Long postId) {
+    public int incrementLikes(long postId) {
         String updateSql = "UPDATE posts SET likes = likes + 1 WHERE id = ?";
         jdbcTemplate.update(updateSql, postId);
 
@@ -153,16 +144,59 @@ public class JdbcNativePostRepository implements PostRepository {
     }
 
     @Override
+    @Transactional
     public void updatePost(Post post) {
-        String sql = "UPDATE posts SET title = ?, content = ?, image_url = ?, likes = ?, tags = ? WHERE id = ?";
+        var getLikesSql = "SELECT likes FROM posts WHERE id = ?";
+        var currentLikes = jdbcTemplate.queryForObject(getLikesSql, Integer.class, post.getId());
+
+        int likesToUpdate = (post.getLikes() != 0) ? post.getLikes() : currentLikes;
+
+        String updatePostSql = "UPDATE posts SET title = ?, content = ?, image_url = ?, likes = ? WHERE id = ?";
         jdbcTemplate.update(
-            sql,
+            updatePostSql,
             post.getTitle(),
             post.getContent(),
             post.getImageUrl(),
-            post.getLikes(),
-            post.getTags(),
+            likesToUpdate,
             post.getId()
         );
+
+        var deletePostTagsSql = "DELETE FROM post_tags WHERE post_id = ?";
+        jdbcTemplate.update(deletePostTagsSql, post.getId());
+
+        if (post.getTags() != null && !post.getTags().isEmpty()) {
+            for (String tagName : post.getTags()) {
+                tagName = tagName.trim();
+
+                String insertTagSql = "MERGE INTO tags (name) KEY (name) VALUES (?)";
+                jdbcTemplate.update(insertTagSql, tagName);
+
+                Long tagId = jdbcTemplate.queryForObject(
+                    "SELECT id FROM tags WHERE name = ?", Long.class, tagName
+                );
+
+                String insertPostTagSql = "INSERT INTO post_tags (post_id, tag_id) VALUES (?, ?)";
+                jdbcTemplate.update(insertPostTagSql, post.getId(), tagId);
+            }
+        }
+    }
+
+    @Transactional
+    @Override
+    public void deletePost(long postId) {
+        String checkPostSql = "SELECT COUNT(*) FROM posts WHERE id = ?";
+        int count = jdbcTemplate.queryForObject(checkPostSql, Integer.class, postId);
+        if (count == 0) {
+            throw new RuntimeException("Пост с ID " + postId + " не найден");
+        }
+
+        String deletePostTagsSql = "DELETE FROM post_tags WHERE post_id = ?";
+        jdbcTemplate.update(deletePostTagsSql, postId);
+
+        String deleteCommentsSql = "DELETE FROM comments WHERE post_id = ?";
+        jdbcTemplate.update(deleteCommentsSql, postId);
+
+        String deletePostSql = "DELETE FROM posts WHERE id = ?";
+        jdbcTemplate.update(deletePostSql, postId);
     }
 }

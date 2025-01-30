@@ -14,9 +14,7 @@ public class Post {
 
     private String content;
 
-    private Set<Tag> tags;
+    private Set<String> tags;
 
     private int likes;
-
-    private int comments;
 }

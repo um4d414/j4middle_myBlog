@@ -34,12 +34,16 @@ public class PostService {
         return mapPost(resultPostDto);
     }
 
-    public int likePost(Long id) {
+    public int likePost(long id) {
         return postRepository.incrementLikes(id);
     }
 
     public void updatePost(PostDto postDto) {
         postRepository.updatePost(mapPost(postDto));
+    }
+
+    public void deletePost(long postId) {
+        postRepository.deletePost(postId);
     }
 
     private PostDto mapPost(Post post) {
@@ -50,7 +54,7 @@ public class PostService {
             .content(post.getContent())
             .imageUrl(post.getImageUrl())
             .likes(post.getLikes())
-            .comments(post.getComments())
+            .tags(post.getTags()) // Теги уже в виде Set<String>
             .build();
     }
 
@@ -61,8 +65,7 @@ public class PostService {
         post.setContent(postDto.getContent());
         post.setImageUrl(postDto.getImageUrl());
         post.setLikes(postDto.getLikes());
-        post.setComments(postDto.getComments());
-
+        post.setTags(postDto.getTags()); // Теги уже в виде Set<String>
         return post;
     }
 }

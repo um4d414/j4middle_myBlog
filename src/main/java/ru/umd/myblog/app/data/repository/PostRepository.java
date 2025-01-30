@@ -12,7 +12,9 @@ public interface PostRepository {
 
     Post createPost(Post post);
 
-    int incrementLikes(Long postId);
+    int incrementLikes(long postId);
 
     void updatePost(Post post);
+
+    void deletePost(long postId);
 }
