@@ -17,6 +17,7 @@ war {
 
 test {
     useJUnitPlatform()
+    systemProperty "file.encoding", "UTF-8"
 }
 
 tasks.register('copyToTomcat', Copy) {
@@ -49,4 +50,5 @@ dependencies {
     testImplementation libs.springTest
     testImplementation libs.junit
     testRuntimeOnly libs.junitEngine
+    testImplementation libs.mockito
 }

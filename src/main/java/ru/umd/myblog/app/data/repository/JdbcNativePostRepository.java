@@ -11,6 +11,7 @@ import org.springframework.transaction.annotation.Transactional;
 import ru.umd.myblog.app.data.entity.Post;
 
 import java.sql.PreparedStatement;
+import java.sql.Statement;
 import java.util.*;
 
 @Repository
@@ -146,11 +147,12 @@ public class JdbcNativePostRepository implements PostRepository {
     @Override
     @Transactional
     public void updatePost(Post post) {
-        var getLikesSql = "SELECT likes FROM posts WHERE id = ?";
-        var currentLikes = jdbcTemplate.queryForObject(getLikesSql, Integer.class, post.getId());
-
+        // Получаем текущее количество лайков, если новое значение не задано
+        String getLikesSql = "SELECT likes FROM posts WHERE id = ?";
+        Integer currentLikes = jdbcTemplate.queryForObject(getLikesSql, Integer.class, post.getId());
         int likesToUpdate = (post.getLikes() != 0) ? post.getLikes() : currentLikes;
 
+        // Обновляем данные поста
         String updatePostSql = "UPDATE posts SET title = ?, content = ?, image_url = ?, likes = ? WHERE id = ?";
         jdbcTemplate.update(
             updatePostSql,
@@ -161,20 +163,36 @@ public class JdbcNativePostRepository implements PostRepository {
             post.getId()
         );
 
-        var deletePostTagsSql = "DELETE FROM post_tags WHERE post_id = ?";
+        // Удаляем старые связи с тегами
+        String deletePostTagsSql = "DELETE FROM post_tags WHERE post_id = ?";
         jdbcTemplate.update(deletePostTagsSql, post.getId());
 
+        // Если заданы новые теги, добавляем их и создаем связи
         if (post.getTags() != null && !post.getTags().isEmpty()) {
-            for (String tagName : post.getTags()) {
-                tagName = tagName.trim();
+            for (String rawTag : post.getTags()) {
+                final String tagName = rawTag.trim();
 
-                String insertTagSql = "MERGE INTO tags (name) KEY (name) VALUES (?)";
-                jdbcTemplate.update(insertTagSql, tagName);
+                // Проверяем, существует ли тег
+                String findTagSql = "SELECT id FROM tags WHERE name = ?";
+                List<Long> tagIds = jdbcTemplate.queryForList(findTagSql, Long.class, tagName);
 
-                Long tagId = jdbcTemplate.queryForObject(
-                    "SELECT id FROM tags WHERE name = ?", Long.class, tagName
-                );
+                Long tagId;
+                if (tagIds.isEmpty()) {
+                    // Если тег не существует, вставляем его с использованием KeyHolder для получения сгенерированного ID
+                    String insertTagSql = "INSERT INTO tags (name) VALUES (?)";
+                    KeyHolder keyHolder = new GeneratedKeyHolder();
+                    jdbcTemplate.update(connection -> {
+                        PreparedStatement ps = connection.prepareStatement(insertTagSql, Statement.RETURN_GENERATED_KEYS);
+                        ps.setString(1, tagName);
+                        return ps;
+                    }, keyHolder);
+                    tagId = Objects.requireNonNull(keyHolder.getKey()).longValue();
+                } else {
+                    // Если тег уже есть, используем его ID
+                    tagId = tagIds.get(0);
+                }
 
+                // Создаем связь между постом и тегом
                 String insertPostTagSql = "INSERT INTO post_tags (post_id, tag_id) VALUES (?, ?)";
                 jdbcTemplate.update(insertPostTagSql, post.getId(), tagId);
             }

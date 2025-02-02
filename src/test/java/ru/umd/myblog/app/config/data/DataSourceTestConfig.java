@@ -9,12 +9,13 @@ import org.springframework.jdbc.datasource.embedded.EmbeddedDatabaseType;
 import javax.sql.DataSource;
 
 @Configuration
-public class DataSourceConfig {
+public class DataSourceTestConfig {
     @Bean
     public DataSource dataSource() {
         return new EmbeddedDatabaseBuilder()
             .setType(EmbeddedDatabaseType.H2)
             .addScript("classpath:/sql/schema.sql")
+            .addScript("classpath:/sql/data.sql")
             .build();
     }
 

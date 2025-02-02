@@ -2,7 +2,6 @@ package ru.umd.myblog.app.controller;
 
 import javassist.NotFoundException;
 import lombok.RequiredArgsConstructor;
-import org.springframework.core.io.UrlResource;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
@@ -11,13 +10,10 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import ru.umd.myblog.app.data.dto.CommentDto;
 import ru.umd.myblog.app.data.dto.PostDto;
-import ru.umd.myblog.app.service.CommentService;
-import ru.umd.myblog.app.service.PostService;
+import ru.umd.myblog.app.service.*;
 
-import java.io.File;
 import java.io.IOException;
 import java.util.List;
-import java.util.UUID;
 
 @Controller
 @RequestMapping("/posts")
@@ -26,6 +22,8 @@ public class PostController {
     private final PostService postService;
 
     private final CommentService commentService;
+
+    private final ImageService imageService;
 
     @GetMapping(
         produces = MediaType.TEXT_HTML_VALUE
@@ -46,7 +44,7 @@ public class PostController {
         @RequestParam("image") MultipartFile image
     ) throws IOException {
         if (!image.isEmpty()) {
-            String imageUrl = saveImage(image);
+            String imageUrl = imageService.saveImage(image);
             postDto.setImageUrl(imageUrl);
         }
 
@@ -91,22 +89,6 @@ public class PostController {
     public String deletePost(@PathVariable("postId") Long postId) {
         postService.deletePost(postId);
         return "redirect:/posts";
-    }
-
-    private String saveImage(MultipartFile image) throws IOException {
-        var uploadDir = "file:/C:/uploads/";
-        var resource = new UrlResource(uploadDir);
-
-        if (!resource.exists()) {
-            resource.getFile().mkdirs();
-        }
-
-        var fileName = UUID.randomUUID() + "_" + image.getOriginalFilename();
-        var file = new File(resource.getFile(), fileName);
-
-        image.transferTo(file);
-
-        return uploadDir + fileName;
     }
 
     record LikesResponse(int likes) {
