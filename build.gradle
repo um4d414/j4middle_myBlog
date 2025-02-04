@@ -20,14 +20,14 @@ test {
     systemProperty "file.encoding", "UTF-8"
 }
 
-tasks.register('copyToTomcat', Copy) {
-    dependsOn tasks.assemble
-    from layout.buildDirectory
-    into 'C:\\dev\\tomcat\\t1\\11.0.2\\webapps'
-    include '*.war'
-}
-
-tasks.assemble.finalizedBy('copyToTomcat')
+//tasks.register('copyToTomcat', Copy) {
+//    dependsOn tasks.assemble
+//    from layout.buildDirectory
+//    into 'C:\\dev\\tomcat\\t1\\11.0.2\\webapps'
+//    include '*.war'
+//}
+//
+//tasks.assemble.finalizedBy('copyToTomcat')
 
 dependencies {
     implementation libs.springContext

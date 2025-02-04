@@ -16,10 +16,11 @@
   - JDBC
 - H2
 - Thymeleaf
+
 ## Установка:
 - Создать и установить в системную переменную $MY_BLOG_UPLOADS_DIR директорию для хранения изображений
-  - Выполнить команду в директории проекта: 
-    - .\gradlew.bat assemble (для Windows)
-    - ./gradlew assemble (для MacOS / Linux)
+- Выполнить команду в директории проекта: 
+  - .\gradlew.bat assemble (для Windows)
+  - ./gradlew assemble (для MacOS / Linux)
 - Перенести файл /build/myBlog.war в рабочую директорию контейнера сервлетов
 - Дальнейший запуск зависит от используемого контейнера

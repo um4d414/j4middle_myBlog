@@ -10,6 +10,10 @@ public interface PostRepository {
 
     List<Post> getAllPosts();
 
+    List<Post> getPostsByTagWithPagination(String tag, int offset, int limit);
+
+    int countPostsByTag(String tag);
+
     Post createPost(Post post);
 
     int incrementLikes(long postId);

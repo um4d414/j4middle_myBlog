@@ -16,17 +16,19 @@ public class DefaultImageService implements ImageService {
     @Value("${upload.dir}")
     private String uploadDir;
 
+    @Value("${upload.url}")
+    private String uploadUrl;
+
     @Override
     public String saveImage(MultipartFile image) throws IOException {
         var resource = new UrlResource(uploadDir);
         if (!resource.exists()) {
             resource.getFile().mkdirs();
         }
-
+        // Генерируем уникальное имя файла
         var fileName = UUID.randomUUID() + "_" + image.getOriginalFilename();
         var file = new File(resource.getFile(), fileName);
         image.transferTo(file);
-
-        return uploadDir + fileName;
+        return uploadUrl + fileName;
     }
 }

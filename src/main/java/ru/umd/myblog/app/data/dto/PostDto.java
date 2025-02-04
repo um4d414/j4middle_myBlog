@@ -3,6 +3,7 @@ package ru.umd.myblog.app.data.dto;
 import lombok.*;
 import lombok.experimental.Tolerate;
 
+import java.util.HashSet;
 import java.util.Set;
 
 @Data
@@ -18,7 +19,8 @@ public class PostDto {
 
     private int likes;
 
-    private Set<String> tags;
+    @Builder.Default
+    private Set<String> tags = new HashSet<>();
 
     @Tolerate
     public PostDto() {}

@@ -13,7 +13,8 @@ import ru.umd.myblog.app.data.dto.PostDto;
 import ru.umd.myblog.app.service.*;
 
 import java.io.IOException;
-import java.util.List;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Controller
 @RequestMapping("/posts")
@@ -24,13 +25,32 @@ public class PostController {
     private final CommentService commentService;
 
     private final ImageService imageService;
+//
+//    @GetMapping(
+//        produces = MediaType.TEXT_HTML_VALUE
+//    )
+//    public String postsFeed(Model model) {
+//        model.addAttribute("posts", postService.getPosts());
+//        model.addAttribute("post", new PostDto());
+//
+//        return "postfeed";
+//    }
 
-    @GetMapping(
-        produces = MediaType.TEXT_HTML_VALUE
-    )
-    public String postsFeed(Model model) {
-        model.addAttribute("posts", postService.getPosts());
-        model.addAttribute("post", new PostDto());
+    @GetMapping(produces = MediaType.TEXT_HTML_VALUE)
+    public String postsFeed(
+        @RequestParam(value = "tag", required = false) String tag,
+        @RequestParam(value = "page", defaultValue = "0") int page,
+        @RequestParam(value = "size", defaultValue = "10") int size,
+        Model model
+    ) {
+        var postsPage = postService.getPosts(tag, page, size);
+        model.addAttribute("posts", postsPage.getContent());
+        model.addAttribute("currentPage", postsPage.getCurrentPage());
+        model.addAttribute("totalPages", postsPage.getTotalPages());
+        model.addAttribute("pageSize", postsPage.getPageSize());
+        model.addAttribute("tag", tag);
+
+        model.addAttribute("post", PostDto.builder().build());
 
         return "postfeed";
     }
@@ -41,15 +61,21 @@ public class PostController {
     )
     public String createPost(
         @ModelAttribute("post") PostDto postDto,
+        @RequestParam("tagsString") String tagsString,
         @RequestParam("image") MultipartFile image
     ) throws IOException {
+        if (tagsString != null && !tagsString.isBlank()) {
+            Set<String> tags = Arrays.stream(tagsString.split(","))
+                .map(String::trim)
+                .filter(s -> !s.isEmpty())
+                .collect(Collectors.toSet());
+            postDto.setTags(tags);
+        }
         if (!image.isEmpty()) {
             String imageUrl = imageService.saveImage(image);
             postDto.setImageUrl(imageUrl);
         }
-
         postService.createPost(postDto);
-
         return "redirect:/posts";
     }
 

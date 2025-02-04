@@ -4,6 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Лента постов</title>
+    <style>
+        .post-content {
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+    </style>
 </head>
 <body>
 
@@ -11,8 +19,9 @@
 
 <script>
     $(document).ready(function () {
-        $("a.createPostLink").click(function () {
-            $(".createPost").show();
+        $("a.createPostLink").click(function (event) {
+            event.preventDefault(); // Отменяем стандартное поведение ссылки
+            $(".createPost").toggle(); // Показываем или скрываем форму (toggle() вместо show(), если требуется переключение)
         });
 
         $(".like-link").click(function (event) {
@@ -35,20 +44,43 @@
     });
 </script>
 
+<form th:action="@{/posts}" method="get">
+    <label for="tag">Фильтр по тэгу:</label>
+    <input id="tag" name="tag" type="text" th:value="${tag}" placeholder="Введите тэг"/>
+
+    <label for="size">Постов на странице:</label>
+    <select id="size" name="size">
+        <option value="10" th:selected="${pageSize == 10}">10</option>
+        <option value="20" th:selected="${pageSize == 20}">20</option>
+        <option value="50" th:selected="${pageSize == 50}">50</option>
+    </select>
+
+    <button type="submit">Применить</button>
+</form>
+
 <div th:each="post : ${posts}">
     <h2>
         <a th:href="@{/posts/{postId}(postId=${post.id})}" th:text="${post.title}"></a>
     </h2>
     <img th:if="${post.imageUrl}" th:src="@{${post.imageUrl}}" alt="Post image" style="max-width: 300px;"/><br/>
-    <p><span th:text="${post.imageUrl}"></span></p>
-    <p><span th:text="${post.content}"></span></p>
+    <p class="post-content" th:text="${post.content}"></p>
     <p>Лайки:
         <span th:id="'likes-' + ${post.id}" th:text="${post.likes}">0</span>
         <a href="#" class="like-link" th:data-post-id="${post.id}" th:href="@{/posts/{postId}/like(postId=${post.id})}">Like</a>
     </p>
     <p>Тэги:
-        <span th:each="tag : ${post.tags}" th:text="${tag} + ' '"></span>
+        <span th:each="tagItem : ${post.tags}" th:text="${tagItem} + ' '"></span>
     </p>
+</div>
+
+<div>
+    <span th:text="'Страница ' + (${currentPage} + 1) + ' из ' + ${totalPages}"></span>
+    <div>
+        <a th:if="${currentPage > 0}"
+           th:href="@{/posts(page=${currentPage - 1}, size=${pageSize}, tag=${tag})}">Предыдущая</a>
+        <a th:if="${currentPage + 1 < totalPages}"
+           th:href="@{/posts(page=${currentPage + 1}, size=${pageSize}, tag=${tag})}">Следующая</a>
+    </div>
 </div>
 
 <br/><br/>
@@ -69,7 +101,9 @@
         <textarea id="content" th:field="*{content}"></textarea><br/>
 
         <label for="tags">Тэги (через запятую): </label>
-        <input id="tags" th:field="*{tags}" type="text"/><br/>
+        <input id="tags" name="tagsString" type="text"
+               th:value="${post.tags != null ? T(org.thymeleaf.util.StringUtils).join(post.tags.toArray(), ', ') : ''}"
+               placeholder="Введите тэги через запятую"/>
 
         <button type="submit">Сохранить</button>
     </form>

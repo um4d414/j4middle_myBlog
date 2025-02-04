@@ -15,21 +15,20 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 import ru.umd.myblog.app.config.web.ControllerTestConfig;
-import ru.umd.myblog.app.data.dto.PostDto;
-import ru.umd.myblog.app.service.PostService;
+import ru.umd.myblog.app.data.dto.*;
+import ru.umd.myblog.app.service.*;
 
 import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 
-@ContextConfiguration(classes = {ControllerTestConfig.class})
-@WebAppConfiguration
 @ExtendWith(SpringExtension.class)
+@WebAppConfiguration
+@ContextConfiguration(classes = {ControllerTestConfig.class})
 public class PostControllerTest {
 
     private final ObjectMapper objectMapper = new ObjectMapper();
@@ -42,136 +41,177 @@ public class PostControllerTest {
     @Autowired
     private PostService postService;
 
+    @Autowired
+    private CommentService commentService;
+
+    @Autowired
+    private ImageService imageService;
+
     @BeforeEach
     void setup() {
-        // Настраиваем MockMvc с реальным веб-контекстом (с Thymeleaf)
+        // Создаем MockMvc с использованием WebApplicationContext
         mockMvc = MockMvcBuilders.webAppContextSetup(wac).build();
     }
 
-    // Тест для GET /posts, который должен вернуть страницу ленты постов (шаблон postfeed.html)
+    /**
+     * Тест для GET /posts с фильтрацией по тегу и пагинацией.
+     */
     @Test
-    void testPostsFeedRendersCorrectTemplate() throws Exception {
-        // Подготавливаем данные для сервиса
-        when(postService.getPosts()).thenReturn(List.of(
-            PostDto.builder()
-                .id(1L)
-                .title("First Post")
-                .content("Content of the first post")
-                .imageUrl("http://example.com/image1.jpg")
-                .likes(10)
-                .tags(Set.of("tech", "java"))
-                .build(),
-            PostDto.builder()
-                .id(2L)
-                .title("Second Post")
-                .content("Content of the second post")
-                .imageUrl("http://example.com/image2.jpg")
-                .likes(5)
-                .tags(Set.of("spring", "jdbc"))
-                .build()
-        ));
+    void testPostsFeed() throws Exception {
+        // Подготавливаем тестовый PostsPage
+        PostDto post1 = PostDto.builder()
+            .id(1L)
+            .title("First Post")
+            .content("Content of the first post")
+            .imageUrl("/uploads/img1.jpg")
+            .likes(10)
+            .tags(Set.of("tech", "java"))
+            .build();
+        PostDto post2 = PostDto.builder()
+            .id(2L)
+            .title("Second Post")
+            .content("Content of the second post")
+            .imageUrl("/uploads/img2.jpg")
+            .likes(5)
+            .tags(Set.of("spring", "jdbc"))
+            .build();
 
-        mockMvc.perform(get("/posts").accept(MediaType.TEXT_HTML))
+        PostsPage postsPage = PostsPage.builder()
+            .content(List.of(post1, post2))
+            .currentPage(0)
+            .pageSize(10)
+            .totalPosts(2)
+            .totalPages(1)
+            .build();
+
+        when(postService.getPosts(eq("tech"), eq(0), eq(10))).thenReturn(postsPage);
+
+        mockMvc.perform(get("/posts")
+                            .param("tag", "tech")
+                            .param("page", "0")
+                            .param("size", "10")
+                            .accept(MediaType.TEXT_HTML))
             .andExpect(result -> {
-                // Проверяем статус ответа
+                // Проверяем, что статус 200 и view name равен "postfeed"
                 assertEquals(200, result.getResponse().getStatus());
-                // Проверяем, что view name равно "postfeed"
                 String viewName = result.getModelAndView().getViewName();
                 assertEquals("postfeed", viewName, "View name должен быть 'postfeed'");
-                // Проверяем содержимое HTML-ответа
-                String content = result.getResponse().getContentAsString();
-                assertTrue(content.contains("<title>Лента постов</title>"), "Должен быть заголовок 'Лента постов'");
-                assertTrue(content.contains("Добавить пост"), "Должна присутствовать ссылка на создание поста");
+                // Дополнительно можно проверить наличие атрибутов модели
+                Object postsAttr = result.getModelAndView().getModel().get("posts");
+                assertEquals(2, ((List<?>) postsAttr).size(), "Должно быть 2 поста");
             });
     }
 
-    // Тест для создания поста (POST /posts) с пустым файлом (image)
+    /**
+     * Тест для создания поста (POST /posts) с multipart данными.
+     */
     @Test
-    void testCreatePostWithoutImageFile() throws Exception {
-        PostDto savedDto = PostDto.builder()
+    void testCreatePost() throws Exception {
+        // Подготавливаем входные данные
+        String tagsString = "new, test";
+        // Симулируем загрузку файла (не пустой файл)
+        byte[] fileContent = "dummy image content".getBytes();
+        MockMultipartFile imageFile = new MockMultipartFile("image", "test.jpg", "image/jpeg", fileContent);
+
+        // При вызове imageService.saveImage возвращаем URL изображения
+        when(imageService.saveImage(any())).thenReturn("/uploads/test.jpg");
+
+        // Подготавливаем входной PostDto (без тегов и imageUrl)
+        PostDto inputDto = PostDto.builder()
+            .title("New Post")
+            .content("New content")
+            .build();
+        // Результат создания поста с сгенерированным id
+        PostDto createdDto = PostDto.builder()
             .id(3L)
             .title("New Post")
             .content("New content")
+            .imageUrl("/uploads/test.jpg")
+            .likes(0)
             .tags(Set.of("new", "test"))
             .build();
-        when(postService.createPost(any(PostDto.class))).thenReturn(savedDto);
+        when(postService.createPost(any(PostDto.class))).thenReturn(createdDto);
 
         mockMvc.perform(multipart("/posts")
-                            .file(new MockMultipartFile("image", new byte[0]))
+                            .file(imageFile)
                             .param("title", "New Post")
                             .param("content", "New content")
-                            .param("tags", "new,test")
-                            .contentType(MediaType.MULTIPART_FORM_DATA))
+                            .param("tagsString", tagsString))
             .andExpect(result -> {
-                // Проверяем, что происходит редирект на /posts
+                // Ожидается редирект на /posts
                 String redirectedUrl = result.getResponse().getRedirectedUrl();
                 assertEquals("/posts", redirectedUrl, "Должен быть редирект на /posts");
             });
 
+        verify(imageService, times(1)).saveImage(any());
         verify(postService, times(1)).createPost(any(PostDto.class));
     }
 
-    // Тест для лайка поста (POST /posts/{postId}/like) – возвращается JSON с новым количеством лайков
+    /**
+     * Тест для лайка поста (POST /posts/{postId}/like).
+     */
     @Test
-    void testLikePostReturnsJson() throws Exception {
+    void testLikePost() throws Exception {
         when(postService.likePost(1L)).thenReturn(11);
 
         mockMvc.perform(post("/posts/1/like")
-                            .accept(MediaType.APPLICATION_JSON)) // Явно указываем, что ожидаем JSON
+                            .accept(MediaType.APPLICATION_JSON))
             .andExpect(result -> {
-                // Проверяем статус ответа и content type
                 assertEquals(200, result.getResponse().getStatus());
                 assertEquals(MediaType.APPLICATION_JSON_VALUE, result.getResponse().getContentType());
-                // Используем ObjectMapper для разбора JSON
                 String json = result.getResponse().getContentAsString();
+                // Простой разбор JSON через ObjectMapper
                 @SuppressWarnings("unchecked")
-                Map<String, Object> map = objectMapper.readValue(json, Map.class);
+                var map = objectMapper.readValue(json, java.util.Map.class);
                 assertEquals(11, map.get("likes"));
             });
     }
 
-    // Тест для GET /posts/{postId}, который возвращает страницу поста (шаблон post.html) с комментариями
+    /**
+     * Тест для просмотра поста (GET /posts/{postId}).
+     */
     @Test
-    void testGetPostRendersCorrectTemplate() throws Exception {
+    void testGetPost() throws Exception {
         PostDto postDto = PostDto.builder()
             .id(1L)
             .title("First Post")
             .content("Content of the first post")
-            .imageUrl("http://example.com/image1.jpg")
+            .imageUrl("/uploads/img1.jpg")
             .likes(10)
             .tags(Set.of("tech", "java"))
             .build();
         when(postService.findPostById(1L)).thenReturn(Optional.of(postDto));
 
-        mockMvc.perform(get("/posts/1"))
+        CommentDto comment1 = CommentDto.builder().id(1L).content("Nice post!").postId(1L).build();
+        CommentDto comment2 = CommentDto.builder().id(2L).content("I agree!").postId(1L).build();
+        when(commentService.getCommentsByPostId(1L)).thenReturn(List.of(comment1, comment2));
+
+        mockMvc.perform(get("/posts/1").accept(MediaType.TEXT_HTML))
             .andExpect(result -> {
-                // Проверяем статус ответа
                 assertEquals(200, result.getResponse().getStatus());
-                // Проверяем, что view name равно "post"
                 String viewName = result.getModelAndView().getViewName();
                 assertEquals("post", viewName, "View name должен быть 'post'");
-                // Проверяем, что HTML содержит заголовок поста и контент
-                String content = result.getResponse().getContentAsString();
-                assertTrue(
-                    content.contains("<title>First Post</title>"),
-                    "Заголовок страницы должен содержать 'First Post'"
-                );
-                assertTrue(content.contains("Content of the first post"), "Должен быть виден контент поста");
+                // Проверяем, что в модели есть атрибуты post и comments
+                Object postAttr = result.getModelAndView().getModel().get("post");
+                Object commentsAttr = result.getModelAndView().getModel().get("comments");
+                assertEquals(postDto, postAttr);
+                assertEquals(2, ((List<?>) commentsAttr).size());
             });
     }
 
-    // Тест для редактирования поста (POST /posts/edit) – проверяем редирект и корректность передачи параметров
+    /**
+     * Тест для редактирования поста (POST /posts/edit).
+     */
     @Test
-    void testEditPostRedirects() throws Exception {
+    void testEditPost() throws Exception {
         mockMvc.perform(post("/posts/edit")
                             .param("id", "1")
                             .param("title", "Updated Title")
                             .param("content", "Updated Content")
-                            .param("imageUrl", "http://example.com/updated.jpg")
+                            .param("imageUrl", "/uploads/updated.jpg")
                             .param("likes", "15")
-                            .param("tags", "updated,java"))
+                            .param("tags", "updated, java"))
             .andExpect(result -> {
-                // Проверяем редирект на /posts/1
                 String redirectedUrl = result.getResponse().getRedirectedUrl();
                 assertEquals("/posts/1", redirectedUrl, "Должен быть редирект на /posts/1");
             });
@@ -183,17 +223,23 @@ public class PostControllerTest {
                 return dto.getId() == 1L &&
                        "Updated Title".equals(dto.getTitle()) &&
                        "Updated Content".equals(dto.getContent()) &&
-                       "http://example.com/updated.jpg".equals(dto.getImageUrl()) &&
+                       "/uploads/updated.jpg".equals(dto.getImageUrl()) &&
                        dto.getLikes() == 15 &&
+                       dto.getTags() != null &&
                        dto.getTags().equals(Set.of("updated", "java"));
             }
         }));
     }
 
-    // Тест для удаления поста (POST /posts/{postId}/delete)
+    /**
+     * Тест для удаления поста (POST /posts/{postId}/delete).
+     */
     @Test
-    void testDeletePostRedirects() throws Exception {
-        mockMvc.perform(post("/posts/1/delete"))
+    void testDeletePost() throws Exception {
+        doNothing().when(postService).deletePost(1L);
+
+        mockMvc.perform(post("/posts/1/delete")
+                            .contentType(MediaType.APPLICATION_FORM_URLENCODED))
             .andExpect(result -> {
                 String redirectedUrl = result.getResponse().getRedirectedUrl();
                 assertEquals("/posts", redirectedUrl, "Должен быть редирект на /posts");

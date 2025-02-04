@@ -88,6 +88,53 @@ public class JdbcNativePostRepository implements PostRepository {
     }
 
     @Override
+    public List<Post> getPostsByTagWithPagination(String tag, int offset, int limit) {
+        String sql;
+        Object[] params;
+        if (tag != null && !tag.isBlank()) {
+            sql = "SELECT DISTINCT p.id, p.title, p.image_url, p.content, p.likes " +
+                  "FROM posts p " +
+                  "JOIN post_tags pt ON p.id = pt.post_id " +
+                  "JOIN tags t ON pt.tag_id = t.id " +
+                  "WHERE t.name = ?" +
+                  "ORDER BY p.id DESC " +
+                  "LIMIT ? OFFSET ?";
+            params = new Object[]{tag, limit, offset};
+        } else {
+            sql = "SELECT id, title, image_url, content, likes FROM posts ORDER BY id DESC LIMIT ? OFFSET ?";
+            params = new Object[]{limit, offset};
+        }
+        List<Post> posts = jdbcTemplate.query(sql, params, postRowMapper);
+        // Для каждого поста получаем теги (если их нужно, можно оставить как есть)
+        for (Post post : posts) {
+            String tagsSql = "SELECT t.name FROM tags t " +
+                             "JOIN post_tags pt ON t.id = pt.tag_id " +
+                             "WHERE pt.post_id = ?";
+            Set<String> tags = new HashSet<>(jdbcTemplate.queryForList(tagsSql, String.class, post.getId()));
+            post.setTags(tags);
+        }
+        return posts;
+    }
+
+    @Override
+    public int countPostsByTag(String tag) {
+        String sql;
+        Object[] params;
+        if (tag != null && !tag.isBlank()) {
+            sql = "SELECT COUNT(DISTINCT p.id) " +
+                  "FROM posts p " +
+                  "JOIN post_tags pt ON p.id = pt.post_id " +
+                  "JOIN tags t ON pt.tag_id = t.id " +
+                  "WHERE t.name LIKE ?";
+            params = new Object[]{"%" + tag + "%"};
+        } else {
+            sql = "SELECT COUNT(*) FROM posts";
+            params = new Object[]{};
+        }
+        return jdbcTemplate.queryForObject(sql, params, Integer.class);
+    }
+
+    @Override
     public Post createPost(Post post) {
         var sql = """
                   INSERT INTO posts (title, image_url, content)
@@ -181,11 +228,16 @@ public class JdbcNativePostRepository implements PostRepository {
                     // Если тег не существует, вставляем его с использованием KeyHolder для получения сгенерированного ID
                     String insertTagSql = "INSERT INTO tags (name) VALUES (?)";
                     KeyHolder keyHolder = new GeneratedKeyHolder();
-                    jdbcTemplate.update(connection -> {
-                        PreparedStatement ps = connection.prepareStatement(insertTagSql, Statement.RETURN_GENERATED_KEYS);
-                        ps.setString(1, tagName);
-                        return ps;
-                    }, keyHolder);
+                    jdbcTemplate.update(
+                        connection -> {
+                            PreparedStatement ps = connection.prepareStatement(
+                                insertTagSql,
+                                Statement.RETURN_GENERATED_KEYS
+                            );
+                            ps.setString(1, tagName);
+                            return ps;
+                        }, keyHolder
+                    );
                     tagId = Objects.requireNonNull(keyHolder.getKey()).longValue();
                 } else {
                     // Если тег уже есть, используем его ID
