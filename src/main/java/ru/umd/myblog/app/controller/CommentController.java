@@ -1,9 +1,10 @@
 package ru.umd.myblog.app.controller;
 
-import javassist.NotFoundException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 import ru.umd.myblog.app.service.CommentService;
 
 @Controller
@@ -22,21 +23,22 @@ public class CommentController {
     public String editComment(
         @PathVariable("commentId") long commentId,
         @RequestParam("content") String content
-    ) throws NotFoundException {
+    ) {
         commentService.updateComment(commentId, content);
 
         var comment = commentService
             .findCommentById(commentId)
-            .orElseThrow();
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Пост не найден"));
 
         return "redirect:/posts/" + comment.getPostId(); // Перенаправляем на страницу поста
     }
 
     @PostMapping("/{commentId}/delete")
-    public String deleteComment(@PathVariable("commentId") long commentId) throws NotFoundException {
+    public String deleteComment(@PathVariable("commentId") long commentId) {
         var comment = commentService
             .findCommentById(commentId)
-            .orElseThrow(() -> new NotFoundException("Комментарий не найден"));
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Комментарий не найден"));
+
         commentService.deleteComment(commentId);
         return "redirect:/posts/" + comment.getPostId();
     }

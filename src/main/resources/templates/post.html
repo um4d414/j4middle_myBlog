@@ -11,12 +11,14 @@
 
 <img th:if="${post.imageUrl}" th:src="@{${post.imageUrl}}" alt="Post image" style="max-width: 300px;"/><br/>
 
+<!-- Вывод контента с заменой \n на <br> -->
 <div th:utext="${#strings.replace(post.content, '\n', '<br>')}">Текст поста</div>
 
 <p>Тэги:
     <span th:each="tag : ${post.tags}" th:text="${tag} + ' '"></span>
 </p>
 
+<!-- Кнопка «Редактировать» переключает форму редактирования поста -->
 <button onclick="toggleEditForm()">Редактировать</button>
 
 <div id="editForm" style="display: none;">
@@ -39,15 +41,26 @@
     </form>
 </div>
 
+<!-- Форма удаления поста (обычный POST) -->
 <form th:action="@{/posts/{postId}/delete(postId=${post.id})}" method="post" style="display: inline;">
     <button type="submit">Удалить</button>
 </form>
 
 <p>Лайки:
     <span id="likes" th:text="${post.likes}">0</span>
-    <a href="#" class="like-link" th:data-post-id="${post.id}" th:href="@{/posts/{postId}/like(postId=${post.id})}">Like</a>
+    <!-- Ссылка или кнопка «Like» – при нажатии отправляем скрытую форму (POST /posts/{postId}/like) -->
+    <a href="#" id="likeLink" th:attr="data-post-id=${post.id}">Like</a>
 </p>
 
+<!-- Скрытая форма для лайка -->
+<form th:id="'likeForm'"
+      th:action="@{/posts/{postId}/like(postId=${post.id})}"
+      method="post"
+      style="display: none;">
+    <!-- Если нужно возвращаться именно на эту страницу, можно добавить hidden поле со ссылкой/returnUrl -->
+</form>
+
+<!-- Форма добавления комментария (обычный POST) -->
 <div>
     <form th:action="@{/comments/{postId}(postId=${post.id})}" method="post">
         <textarea name="content" placeholder="Ваш комментарий" required></textarea><br/>
@@ -55,11 +68,14 @@
     </form>
 </div>
 
+<!-- Список комментариев -->
 <div th:each="comment : ${comments}">
     <p th:text="${comment.content}">Текст комментария</p>
 
+    <!-- Кнопка редактирования комментария -->
     <button th:onclick="'toggleEditForm(' + ${comment.id} + ')'">Редактировать</button>
 
+    <!-- Форма редактирования комментария (скрыта) -->
     <div th:id="'editForm-' + ${comment.id}" style="display: none;">
         <form th:action="@{/comments/{commentId}/edit(commentId=${comment.id})}" method="post">
             <textarea name="content" th:text="${comment.content}" required></textarea><br/>
@@ -67,48 +83,45 @@
         </form>
     </div>
 
+    <!-- Форма удаления комментария -->
     <form th:action="@{/comments/{commentId}/delete(commentId=${comment.id})}" method="post" style="display: inline;">
         <button type="submit">Удалить</button>
     </form>
 </div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
-
+<!-- Чистый JavaScript (без jQuery, без AJAX) -->
 <script>
-    $(document).ready(function () {
-        $(".like-link").click(function (event) {
-            event.preventDefault();
-
-            var postId = $(this).data('post-id');
-            var likeUrl = $(this).attr('href');
-
-            $.ajax({
-                url: likeUrl,
-                type: 'POST',
-                dataType: 'json',
-                success: function (response) {
-                    $('#likes').text(response.likes);
-                },
-                error: function (error) {
-                    console.error("Ошибка при отправке запроса:", error);
-                }
-            });
-        });
-    });
-
+    // Тоггл формы редактирования поста или комментария
     function toggleEditForm(commentId = null) {
+        let editForm;
         if (commentId === null) {
-            var editForm = document.getElementById("editForm");
+            // Редактируем сам пост
+            editForm = document.getElementById("editForm");
         } else {
-            var editForm = document.getElementById("editForm-" + commentId);
+            // Редактируем конкретный комментарий
+            editForm = document.getElementById("editForm-" + commentId);
         }
-
-        if (editForm.style.display === "none" || !editForm.style.display) {
-            editForm.style.display = "block";
-        } else {
-            editForm.style.display = "none";
+        if (editForm) {
+            editForm.style.display = (editForm.style.display === "none" || !editForm.style.display)
+                ? "block" : "none";
         }
     }
+
+    // Лайк поста через обычный POST (без AJAX).
+    // При нажатии на ссылку «Like» отправляется скрытая форма likeForm.
+    document.addEventListener("DOMContentLoaded", function() {
+        const likeLink = document.getElementById("likeLink");
+        if (likeLink) {
+            likeLink.addEventListener("click", function(event) {
+                event.preventDefault();
+                const likeForm = document.getElementById("likeForm");
+                if (likeForm) {
+                    likeForm.submit();
+                }
+            });
+        }
+    });
 </script>
+
 </body>
 </html>

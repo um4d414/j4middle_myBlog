@@ -4,6 +4,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
@@ -12,6 +14,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 import ru.umd.myblog.app.config.web.ControllerTestConfig;
+import ru.umd.myblog.app.controller.CommentController;
 import ru.umd.myblog.app.data.dto.CommentDto;
 import ru.umd.myblog.app.service.CommentService;
 
@@ -24,8 +27,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @ContextConfiguration(classes = {ControllerTestConfig.class})
-@WebAppConfiguration
-@ExtendWith(SpringExtension.class)
+@SpringBootTest()
 public class CommentControllerTest {
 
     @Autowired

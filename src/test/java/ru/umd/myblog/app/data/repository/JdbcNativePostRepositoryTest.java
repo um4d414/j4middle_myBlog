@@ -8,11 +8,8 @@ import org.springframework.test.context.jdbc.Sql;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 import ru.umd.myblog.app.config.data.RepositoryTestConfig;
 import ru.umd.myblog.app.data.entity.Post;
-import ru.umd.myblog.app.data.repository.JdbcNativePostRepository;
 
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
 

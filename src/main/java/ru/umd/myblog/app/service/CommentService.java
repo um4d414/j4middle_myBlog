@@ -1,6 +1,5 @@
 package ru.umd.myblog.app.service;
 
-import javassist.NotFoundException;
 import ru.umd.myblog.app.data.dto.CommentDto;
 
 import java.util.List;
@@ -11,7 +10,7 @@ public interface CommentService {
 
     void addComment(long postId, String content);
 
-    void updateComment(long commentId, String content) throws NotFoundException;
+    void updateComment(long commentId, String content);
 
     void deleteComment(long commentId);
 

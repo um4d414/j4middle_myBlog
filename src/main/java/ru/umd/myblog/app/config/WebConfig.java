@@ -1,19 +1,13 @@
-package ru.umd.myblog.app.config.web;
+package ru.umd.myblog.app.config;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Import;
-import org.springframework.web.servlet.config.annotation.*;
+import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
+import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 @Configuration
-@Import({
-    ControllerConfig.class,
-    ThymeleafConfig.class,
-    MultipartConfig.class
-})
-@EnableWebMvc
 public class WebConfig implements WebMvcConfigurer {
-    @Value("${upload.dir}")
+    @Value("${application.upload-dir}")
     private String uploadDir;
 
     @Override

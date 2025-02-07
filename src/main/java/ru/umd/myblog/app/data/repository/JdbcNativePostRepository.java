@@ -135,6 +135,7 @@ public class JdbcNativePostRepository implements PostRepository {
     }
 
     @Override
+    @Transactional
     public Post createPost(Post post) {
         var sql = """
                   INSERT INTO posts (title, image_url, content)
@@ -199,13 +200,21 @@ public class JdbcNativePostRepository implements PostRepository {
         Integer currentLikes = jdbcTemplate.queryForObject(getLikesSql, Integer.class, post.getId());
         int likesToUpdate = (post.getLikes() != 0) ? post.getLikes() : currentLikes;
 
+        String getImageSql = "SELECT image_url FROM posts WHERE id = ?";
+        String currentImageUrl = jdbcTemplate.queryForObject(getImageSql, String.class, post.getId());
+        String newImageUrl = post.getImageUrl();
+
+        if (newImageUrl == null || newImageUrl.isBlank()) {
+            newImageUrl = currentImageUrl;
+        }
+
         // Обновляем данные поста
         String updatePostSql = "UPDATE posts SET title = ?, content = ?, image_url = ?, likes = ? WHERE id = ?";
         jdbcTemplate.update(
             updatePostSql,
             post.getTitle(),
             post.getContent(),
-            post.getImageUrl(),
+            newImageUrl,
             likesToUpdate,
             post.getId()
         );

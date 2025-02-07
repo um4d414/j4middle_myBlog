@@ -21,8 +21,8 @@ import static org.springframework.test.util.AssertionErrors.assertNotEquals;
 @ExtendWith(SpringExtension.class)
 @ContextConfiguration(classes = {ServiceTestConfig.class})
 @TestPropertySource(properties = {
-    "upload.dir=file:${temp.dir}/uploads/",
-    "upload.url=file:${temp.dir}/uploads/"
+    "application.upload-dir=file:${temp.dir}/uploads/",
+    "application.upload-url=file:${temp.dir}/uploads/"
 })
 public class DefaultImageServiceTest {
     @Autowired

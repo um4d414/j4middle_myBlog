@@ -6,7 +6,7 @@ import ru.umd.myblog.app.data.repository.JdbcNativeCommentRepository;
 import ru.umd.myblog.app.data.repository.JdbcNativePostRepository;
 
 @Configuration
-@Import(DataSourceConfig.class)
+@Import(DataSourceTestConfig.class)
 public class RepositoryTestConfig {
     @Bean
     public JdbcNativePostRepository jdbcNativePostRepository(JdbcTemplate jdbcTemplate) {

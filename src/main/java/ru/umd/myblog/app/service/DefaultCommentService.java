@@ -1,6 +1,5 @@
 package ru.umd.myblog.app.service;
 
-import javassist.NotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Service;
@@ -14,7 +13,6 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
-@Primary
 public class DefaultCommentService implements CommentService {
     private final CommentRepository commentRepository;
 
@@ -35,10 +33,10 @@ public class DefaultCommentService implements CommentService {
     }
 
     @Override
-    public void updateComment(long commentId, String content) throws NotFoundException {
+    public void updateComment(long commentId, String content) {
         Comment comment = commentRepository
             .findById(commentId)
-            .orElseThrow(() -> new NotFoundException("Комментарий с ID " + commentId + " не найден"));
+            .orElseThrow(() -> new RuntimeException("Комментарий с ID " + commentId + " не найден"));
 
         comment.setContent(content);
         commentRepository.update(comment);

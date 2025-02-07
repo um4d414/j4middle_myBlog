@@ -1,13 +1,13 @@
 package ru.umd.myblog.app.controller;
 
-import javassist.NotFoundException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.server.ResponseStatusException;
 import ru.umd.myblog.app.data.dto.CommentDto;
 import ru.umd.myblog.app.data.dto.PostDto;
 import ru.umd.myblog.app.service.*;
@@ -25,18 +25,8 @@ public class PostController {
     private final CommentService commentService;
 
     private final ImageService imageService;
-//
-//    @GetMapping(
-//        produces = MediaType.TEXT_HTML_VALUE
-//    )
-//    public String postsFeed(Model model) {
-//        model.addAttribute("posts", postService.getPosts());
-//        model.addAttribute("post", new PostDto());
-//
-//        return "postfeed";
-//    }
 
-    @GetMapping(produces = MediaType.TEXT_HTML_VALUE)
+    @GetMapping
     public String postsFeed(
         @RequestParam(value = "tag", required = false) String tag,
         @RequestParam(value = "page", defaultValue = "0") int page,
@@ -55,14 +45,11 @@ public class PostController {
         return "postfeed";
     }
 
-    @PostMapping(
-        consumes = MediaType.MULTIPART_FORM_DATA_VALUE,
-        produces = MediaType.TEXT_HTML_VALUE
-    )
+    @PostMapping
     public String createPost(
         @ModelAttribute("post") PostDto postDto,
-        @RequestParam("tagsString") String tagsString,
-        @RequestParam("image") MultipartFile image
+        @RequestParam(value = "tagsString", required = false) String tagsString,
+        @RequestParam(value = "image", required = false) MultipartFile image
     ) throws IOException {
         if (tagsString != null && !tagsString.isBlank()) {
             Set<String> tags = Arrays.stream(tagsString.split(","))
@@ -80,22 +67,23 @@ public class PostController {
     }
 
     @PostMapping("/{postId}/like")
-    public ResponseEntity<?> likePost(@PathVariable("postId") Long postId) throws NotFoundException {
-        int newLikesCount;
-        try {
-            newLikesCount = postService.likePost(postId);
-        } catch (Exception e) {
-            throw new NotFoundException("Пост не найден");
-        }
+    public String likePost(
+        @PathVariable("postId") Long postId,
+        @RequestHeader(value = "Referer", required = false) String referer
+    ) {
+        postService.likePost(postId);
 
-        return ResponseEntity.ok(new LikesResponse(newLikesCount));
+        if (referer == null || referer.isBlank()) {
+            return "redirect:/posts";
+        }
+        return "redirect:" + referer;
     }
 
     @GetMapping("/{postId}")
-    public String getPost(@PathVariable("postId") Long postId, Model model) throws NotFoundException {
+    public String getPost(@PathVariable("postId") Long postId, Model model) {
         var post = postService
             .findPostById(postId)
-            .orElseThrow(() -> new NotFoundException("Пост не найден"));
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Пост не найден"));
 
         List<CommentDto> comments = commentService.getCommentsByPostId(postId);
         model.addAttribute("post", post);
@@ -105,7 +93,24 @@ public class PostController {
     }
 
     @PostMapping("/edit")
-    public String editPost(@ModelAttribute("post") PostDto postDto) {
+    public String editPost(
+        @ModelAttribute("post") PostDto postDto,
+        @RequestParam(value = "tags", required = false) String tagsString,
+        @RequestParam(value = "image", required = false) MultipartFile image
+    ) throws IOException {
+        if (!image.isEmpty()) {
+            String imageUrl = imageService.saveImage(image);
+            postDto.setImageUrl(imageUrl);
+        }
+
+        if (tagsString != null && !tagsString.isBlank()) {
+            Set<String> tags = Arrays.stream(tagsString.split(","))
+                .map(String::trim)
+                .filter(s -> !s.isEmpty())
+                .collect(Collectors.toSet());
+            postDto.setTags(tags);
+        }
+
         postService.updatePost(postDto);
 
         return "redirect:/posts/" + postDto.getId();

@@ -11,12 +11,11 @@ import java.io.IOException;
 import java.util.UUID;
 
 @Service
-@Primary
 public class DefaultImageService implements ImageService {
-    @Value("${upload.dir}")
+    @Value("${application.upload-dir}")
     private String uploadDir;
 
-    @Value("${upload.url}")
+    @Value("${application.upload-url}")
     private String uploadUrl;
 
     @Override

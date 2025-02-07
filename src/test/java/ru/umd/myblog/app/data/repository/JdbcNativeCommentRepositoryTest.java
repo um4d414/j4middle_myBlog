@@ -8,7 +8,6 @@ import org.springframework.test.context.jdbc.Sql;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 import ru.umd.myblog.app.config.data.RepositoryTestConfig;
 import ru.umd.myblog.app.data.entity.Comment;
-import ru.umd.myblog.app.data.repository.JdbcNativeCommentRepository;
 
 import java.util.List;
 import java.util.Optional;

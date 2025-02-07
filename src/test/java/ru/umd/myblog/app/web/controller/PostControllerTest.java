@@ -3,14 +3,12 @@ package ru.umd.myblog.app.web.controller;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentMatcher;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit.jupiter.SpringExtension;
-import org.springframework.test.context.web.WebAppConfiguration;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
@@ -26,12 +24,9 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 
-@ExtendWith(SpringExtension.class)
-@WebAppConfiguration
 @ContextConfiguration(classes = {ControllerTestConfig.class})
+@SpringBootTest()
 public class PostControllerTest {
-
-    private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Autowired
     private WebApplicationContext wac;
@@ -49,7 +44,7 @@ public class PostControllerTest {
 
     @BeforeEach
     void setup() {
-        // Создаем MockMvc с использованием WebApplicationContext
+        reset(imageService);
         mockMvc = MockMvcBuilders.webAppContextSetup(wac).build();
     }
 
@@ -116,11 +111,6 @@ public class PostControllerTest {
         // При вызове imageService.saveImage возвращаем URL изображения
         when(imageService.saveImage(any())).thenReturn("/uploads/test.jpg");
 
-        // Подготавливаем входной PostDto (без тегов и imageUrl)
-        PostDto inputDto = PostDto.builder()
-            .title("New Post")
-            .content("New content")
-            .build();
         // Результат создания поста с сгенерированным id
         PostDto createdDto = PostDto.builder()
             .id(3L)
@@ -157,14 +147,11 @@ public class PostControllerTest {
         mockMvc.perform(post("/posts/1/like")
                             .accept(MediaType.APPLICATION_JSON))
             .andExpect(result -> {
-                assertEquals(200, result.getResponse().getStatus());
-                assertEquals(MediaType.APPLICATION_JSON_VALUE, result.getResponse().getContentType());
-                String json = result.getResponse().getContentAsString();
-                // Простой разбор JSON через ObjectMapper
-                @SuppressWarnings("unchecked")
-                var map = objectMapper.readValue(json, java.util.Map.class);
-                assertEquals(11, map.get("likes"));
+                assertEquals(302, result.getResponse().getStatus());
+                assertEquals("/posts", result.getResponse().getRedirectedUrl());
             });
+
+        verify(postService, times(1)).likePost(1L);
     }
 
     /**
@@ -204,13 +191,19 @@ public class PostControllerTest {
      */
     @Test
     void testEditPost() throws Exception {
-        mockMvc.perform(post("/posts/edit")
+        // Мокируем imageService, чтобы при вызове .saveImage(...) возвращался URL
+        when(imageService.saveImage(any())).thenReturn("/uploads/updated.jpg");
+
+        byte[] fileContent = "dummy image content".getBytes();
+        MockMultipartFile imageFile = new MockMultipartFile("image", "test.jpg", "image/jpeg", fileContent);
+
+        mockMvc.perform(multipart("/posts/edit")
+                            .file(imageFile)
                             .param("id", "1")
                             .param("title", "Updated Title")
                             .param("content", "Updated Content")
-                            .param("imageUrl", "/uploads/updated.jpg")
                             .param("likes", "15")
-                            .param("tags", "updated, java"))
+                            .param("tags", "updated,java"))
             .andExpect(result -> {
                 String redirectedUrl = result.getResponse().getRedirectedUrl();
                 assertEquals("/posts/1", redirectedUrl, "Должен быть редирект на /posts/1");

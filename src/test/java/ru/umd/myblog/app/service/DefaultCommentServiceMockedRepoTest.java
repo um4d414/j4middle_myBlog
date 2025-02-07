@@ -1,6 +1,5 @@
 package ru.umd.myblog.app.service;
 
-import javassist.NotFoundException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -86,7 +85,7 @@ public class DefaultCommentServiceMockedRepoTest {
     }
 
     @Test
-    void shouldUpdateComment() throws NotFoundException {
+    void shouldUpdateComment() {
         long commentId = 5L;
         String newContent = "Updated comment content";
 
@@ -113,8 +112,8 @@ public class DefaultCommentServiceMockedRepoTest {
         long nonExistingId = 999L;
         when(commentRepository.findById(nonExistingId)).thenReturn(Optional.empty());
 
-        NotFoundException exception = assertThrows(
-            NotFoundException.class,
+        RuntimeException exception = assertThrows(
+            RuntimeException.class,
             () -> defaultCommentService.updateComment(nonExistingId, "Some content")
         );
 

@@ -15,35 +15,43 @@
 </head>
 <body>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
-
+<!-- Чистый JavaScript, без jQuery -->
 <script>
-    $(document).ready(function () {
-        $("a.createPostLink").click(function (event) {
-            event.preventDefault(); // Отменяем стандартное поведение ссылки
-            $(".createPost").toggle(); // Показываем или скрываем форму (toggle() вместо show(), если требуется переключение)
-        });
+    document.addEventListener('DOMContentLoaded', function() {
+        // Обработка ссылки «Добавить пост» (скрытие/показ формы)
+        const createPostLink = document.querySelector('.createPostLink');
+        const createPostForm = document.querySelector('.createPost');
+        if (createPostLink && createPostForm) {
+            createPostLink.addEventListener('click', function(event) {
+                event.preventDefault();
+                // Переключаем видимость формы
+                if (createPostForm.style.display === 'none' || createPostForm.style.display === '') {
+                    createPostForm.style.display = 'block';
+                } else {
+                    createPostForm.style.display = 'none';
+                }
+            });
+        }
 
-        $(".like-link").click(function (event) {
-            event.preventDefault();
-
-            const postId = $(this).data('post-id');
-
-            $.ajax({
-                url: $(this).attr('href'),
-                type: 'POST',
-                dataType: 'json',
-                success: function (response) {
-                    $('#likes-' + postId).text(response.likes);
-                },
-                error: function (error) {
-                    console.error("Ошибка при отправке запроса:", error);
+        // Обработка ссылок «Like»
+        const likeLinks = document.querySelectorAll('.like-link');
+        likeLinks.forEach(function(link) {
+            link.addEventListener('click', function(event) {
+                event.preventDefault();
+                // Получаем id поста
+                const postId = link.getAttribute('data-post-id');
+                // Находим скрытую форму, соответствующую этому посту
+                const likeForm = document.getElementById('likeForm-' + postId);
+                // Отправляем форму обычным POST-запросом
+                if (likeForm) {
+                    likeForm.submit();
                 }
             });
         });
     });
 </script>
 
+<!-- Форма фильтрации по тегу и количеству постов на странице (GET-запрос) -->
 <form th:action="@{/posts}" method="get">
     <label for="tag">Фильтр по тэгу:</label>
     <input id="tag" name="tag" type="text" th:value="${tag}" placeholder="Введите тэг"/>
@@ -58,21 +66,35 @@
     <button type="submit">Применить</button>
 </form>
 
+<!-- Список постов -->
 <div th:each="post : ${posts}">
     <h2>
         <a th:href="@{/posts/{postId}(postId=${post.id})}" th:text="${post.title}"></a>
     </h2>
     <img th:if="${post.imageUrl}" th:src="@{${post.imageUrl}}" alt="Post image" style="max-width: 300px;"/><br/>
     <p class="post-content" th:text="${post.content}"></p>
+
     <p>Лайки:
+        <!-- Текущее количество лайков -->
         <span th:id="'likes-' + ${post.id}" th:text="${post.likes}">0</span>
-        <a href="#" class="like-link" th:data-post-id="${post.id}" th:href="@{/posts/{postId}/like(postId=${post.id})}">Like</a>
+        <!-- Ссылка «Like», но при клике POST-запрос отправляется через скрытую форму -->
+        <a href="#" class="like-link" th:attr="data-post-id=${post.id}">Like</a>
     </p>
+
+    <!-- Скрытая форма для отправки запроса «лайк» (POST /posts/{postId}/like) -->
+    <form th:id="'likeForm-' + ${post.id}"
+          th:action="@{/posts/{postId}/like(postId=${post.id})}"
+          method="post"
+          style="display: none;">
+        <!-- При необходимости можно добавить CSRF-токен, если включён CSRF -->
+    </form>
+
     <p>Тэги:
         <span th:each="tagItem : ${post.tags}" th:text="${tagItem} + ' '"></span>
     </p>
 </div>
 
+<!-- Пагинация -->
 <div>
     <span th:text="'Страница ' + (${currentPage} + 1) + ' из ' + ${totalPages}"></span>
     <div>
@@ -84,9 +106,11 @@
 </div>
 
 <br/><br/>
+<!-- Ссылка «Добавить пост» -->
 <a href="#" class="createPostLink">Добавить пост</a>
 <br/><br/>
 
+<!-- Форма создания поста (по умолчанию скрыта) -->
 <div>
     <form th:action="@{/posts}" th:object="${post}" method="post" enctype="multipart/form-data" class="createPost"
           style="display: none">
@@ -101,7 +125,9 @@
         <textarea id="content" th:field="*{content}"></textarea><br/>
 
         <label for="tags">Тэги (через запятую): </label>
-        <input id="tags" name="tagsString" type="text"
+        <input id="tags"
+               name="tagsString"
+               type="text"
                th:value="${post.tags != null ? T(org.thymeleaf.util.StringUtils).join(post.tags.toArray(), ', ') : ''}"
                placeholder="Введите тэги через запятую"/>
 
